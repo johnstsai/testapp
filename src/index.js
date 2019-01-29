@@ -4,6 +4,8 @@ import ReactDataGrid from "react-data-grid";
 import * as serviceWorker from './serviceWorker';
 import { Toolbar } from 'react-data-grid-addons';
 import ThreeButtonToolbar from './ThreeButtonToolbar';
+import update from 'immutability-helper';
+
 
 const columns = [
   { key: "id", name: "ID", editable: true },
@@ -34,6 +36,42 @@ class Example extends React.Component {
     this.addNewRow();
   };
 
+  addNewRow = () => {
+    let rows = this.getRows().slice();
+    /* CRUD -> C */
+    fetch("/api/create-project", {
+      method: 'POST',
+      body: JSON.stringify({
+        username: this.props.username,
+        locale: this.props.locale
+      }),
+      headers: {
+        Accept: 'application/json',
+        "content-type": "application/json"
+      }
+    }).then(res => {
+      if (res.ok) {
+        return res.json();
+      } else {
+        throw new Error(res.statusText);
+      }
+    }).then(json => {
+      json["value"] = rows.length;
+      rows = update(rows, { $push: [json] });
+
+      // add a new element
+      // let rowsWithNewElement = update(rows, {$splice: [[1, 0, json]]});
+      // for (var i = 0; i < rowsWithNewElement.length; i++) {
+      //   rowsWithNewElement["value"] = i;
+      // }
+      // console.log(rowsWithNewElement);
+      this.props.fetchProjects(rows);
+      this.showMessage("The project name cannot be empty");
+    }).catch((err) => {
+      console.error(err);
+    });
+  }
+
   handleDeleteRow(e) {
     const originalRows = this.getRows();
     this.props.fetchProjects(originalRows.filter((_, i) => !this.state.selectedIndexes.includes(i)));
@@ -60,7 +98,6 @@ class Example extends React.Component {
     });
 
   }
-
 
   getRows = () => {
     return this.props.projects;
